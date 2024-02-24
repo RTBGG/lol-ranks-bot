@@ -1,11 +1,8 @@
 {
   "editor.tabSize": 2,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": false,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.fixAll.tslint": true,
-    "source.fixAll.stylelint": true
+    "source.fixAll.eslint": "explicit"
   },
   "[json]": {
     "editor.acceptSuggestionOnCommitCharacter": false,
@@ -19,7 +16,9 @@
     "editor.quickSuggestionsDelay": 10,
     "editor.suggest.snippetsPreventQuickSuggestions": false,
     "editor.suggestOnTriggerCharacters": false,
-    "editor.wordBasedSuggestions": false,
+    "editor.wordBasedSuggestions": "off",
   },
-  "bookmarks.useWorkaroundForFormatters": true
+  "[javascript]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  }
 }

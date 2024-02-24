@@ -64,12 +64,12 @@ class LoLRanks {
     try {
       summonerData = await this.apiHandler.getSummonerDataByNameOrId(args)
     } catch (error) {
-      console.warn('Failed to get summoner data for ', args, error.message)
-      // this.dbHandler.deletePlayer(player.summonerID);
+      console.trace('Failed to get summoner data for ', args, error)
       return i18n.__('reply8')
     }
 
     const summonerID = summonerData.id
+
     const discordID =
       message?.author?.id ??
       message?.user.id ??
@@ -80,12 +80,7 @@ class LoLRanks {
     let guild = ''
     let member = ''
 
-    try {
-      guild = await this.client.guilds.fetch(this.config.guildId)
-    } catch (error) {
-      console.trace('False guild id provided in the config', error)
-      return
-    }
+    guild = await this.client.guilds.fetch(this.config.guildId)
 
     try {
       member = await guild.members.fetch(discordID)
@@ -117,9 +112,9 @@ class LoLRanks {
     )
     const helpChannel = findHelpChannel
       ? '<#' + findHelpChannel.id + '>'
-      : '<@' + serverOwner.id + '>';
+      : '<@' + serverOwner.id + '>'
 
-    ({ auth, reply } = this.lolAuth(
+    ;({ auth, reply } = this.lolAuth(
       auth,
       player,
       summonerData,
@@ -132,6 +127,8 @@ class LoLRanks {
       (auth && this.config.enableVerification) ||
       !this.config.enableVerification
     ) {
+      await this.setVerifiedRole(guild, member)
+
       const rankData = await this.apiHandler.getRankedDataById(
         helpChannel,
         summonerID
@@ -177,7 +174,7 @@ class LoLRanks {
         I: 3
       }
 
-      if (tier && rank) {
+      if ((tier && rank) || tier === 'Unranked') {
         const checkValue =
           tier === 'Unranked'
             ? tierValue[tier]
@@ -193,29 +190,30 @@ class LoLRanks {
             .find((emoji) => emoji.name === this.config.rankIconNames[tier])
             ?.toString() ?? ''
 
-        // Compare checkValue with player.totalValue
-        if (player.totalValue > checkValue) {
-          return (
-            member.user +
-            i18n.__('levelDown') +
-            tierIcon +
-            '**' +
-            translatedTier +
-            ' ' +
-            (soloQueueRankData?.rank ?? '') +
-            '**!'
-          )
-        } else if (player.totalValue < checkValue) {
-          return (
-            member.user +
-            i18n.__('levelUp') +
-            tierIcon +
-            '**' +
-            translatedTier +
-            ' ' +
-            (soloQueueRankData?.rank ?? '') +
-            '**!'
-          )
+        if (this.config.enableTierUpdateMessages) {
+          if (player.totalValue > checkValue) {
+            return (
+              member.user +
+              i18n.__('levelDown') +
+              tierIcon +
+              '**' +
+              translatedTier +
+              ' ' +
+              (soloQueueRankData?.rank ?? '') +
+              '**!'
+            )
+          } else if (player.totalValue < checkValue) {
+            return (
+              member.user +
+              i18n.__('levelUp') +
+              tierIcon +
+              '**' +
+              translatedTier +
+              ' ' +
+              (soloQueueRankData?.rank ?? '') +
+              '**!'
+            )
+          }
         }
 
         // Updates player tier, rank and totalValue
@@ -250,15 +248,6 @@ class LoLRanks {
             '** ' +
             i18n.__('reply5_2')
         }
-
-        // Set verified role
-        const verifiedRole = guild.roles.cache.find(
-          (r) => r.name === i18n.__('verified')
-        )
-
-        if (this.config.setVerifiedRole) {
-          await member?.roles.add(verifiedRole)
-        }
       } else {
         reply +=
           i18n.__('reply6') +
@@ -277,6 +266,16 @@ class LoLRanks {
     await this.roles.removeUnusedEloRolesFromUser(player, member)
 
     return reply
+  }
+
+  async setVerifiedRole(guild, member) {
+    if (this.config.setVerifiedRole) {
+      const verifiedRole = guild.roles.cache.find(
+        (r) => r.name === i18n.__('verified')
+      )
+
+      await member?.roles.add(verifiedRole)
+    }
   }
 
   lolAuth(auth, player, summonerData, discordID, reply, helpChannel) {
